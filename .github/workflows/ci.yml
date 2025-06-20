@@ -12,15 +12,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-        exclude:
-          # Skip some combinations to reduce CI time
-          - os: windows-latest
-            python-version: "3.8"
-          - os: windows-latest
-            python-version: "3.9"
-          - os: macos-latest
-            python-version: "3.8"
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     
     steps:
     - uses: actions/checkout@v4
@@ -36,12 +28,6 @@ jobs:
     - name: Install dependencies
       run: |
         uv sync --dev
-        # Install chmpy from local path if available, otherwise from PyPI
-        if [ -d "../chmpy" ]; then
-          uv pip install ../chmpy
-        else
-          echo "chmpy not found locally, using PyPI version"
-        fi
       shell: bash
     
     - name: Lint with ruff

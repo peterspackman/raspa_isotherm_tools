@@ -1,7 +1,7 @@
 # RASPA3 Isotherm Tools
 
 [![CI](https://github.com/peterspackman/raspa_isotherm_tools/workflows/CI/badge.svg)](https://github.com/peterspackman/raspa_isotherm_tools/actions/workflows/ci.yml)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 A Python package for setting up, running, and analyzing adsorption isotherm simulations with RASPA3 using chmpy for force field generation.
@@ -29,7 +29,7 @@ This package provides tools for:
 
 ### Prerequisites
 
-- Python 3.7+
+- Python 3.10+
 - RASPA3 (must be installed and available in PATH)
 - chmpy >= 1.1.7
 
@@ -225,7 +225,7 @@ pytest
 ### Continuous Integration
 
 GitHub Actions CI runs on:
-- Multiple Python versions (3.8-3.12)
+- Multiple Python versions (3.10-3.13)
 - Multiple platforms (Ubuntu, macOS, Windows)
 - Code quality checks (ruff, black, mypy)
 - Full test suite
