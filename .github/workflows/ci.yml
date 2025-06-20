@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        exclude:
+          # Skip some combinations to reduce CI time
+          - os: windows-latest
+            python-version: "3.8"
+          - os: windows-latest
+            python-version: "3.9"
+          - os: macos-latest
+            python-version: "3.8"
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      run: uv python install ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        uv sync --dev
+        # Install chmpy from local path if available, otherwise from PyPI
+        if [ -d "../chmpy" ]; then
+          uv pip install ../chmpy
+        else
+          echo "chmpy not found locally, using PyPI version"
+        fi
+      shell: bash
+    
+    - name: Lint with ruff
+      run: |
+        uv run ruff check src/ tests/ --output-format=github
+      continue-on-error: true
+    
+    - name: Format check with black
+      run: |
+        uv run black --check src/ tests/
+      continue-on-error: true
+    
+    - name: Type check with mypy
+      run: |
+        uv run mypy src/
+      continue-on-error: true
+    
+    - name: Run tests
+      run: |
+        uv run pytest tests/ -v --tb=short
+    
+    - name: Test CLI functionality
+      run: |
+        # Test that the CLI imports and shows help
+        uv run python -m raspa_isotherm_tools.cli --help
+        uv run python -m raspa_isotherm_tools.generator --help
+        uv run python -m raspa_isotherm_tools.parallel_runner --help
+      shell: bash
+
+  test-without-chmpy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+    
+    - name: Set up Python 3.11
+      run: uv python install 3.11
+    
+    - name: Install minimal dependencies (without chmpy)
+      run: |
+        uv venv
+        uv pip install pytest numpy
+        uv pip install -e . --no-deps
+    
+    - name: Run tests without chmpy
+      run: |
+        # Only run tests that don't require chmpy
+        uv run pytest tests/test_constants.py tests/test_simulation.py -v
+      continue-on-error: true
+
+  package:
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+    
+    - name: Set up Python 3.11
+      run: uv python install 3.11
+    
+    - name: Build package
+      run: |
+        uv build
+    
+    - name: Upload package artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: package-artifacts
+        path: dist/
+        retention-days: 30
