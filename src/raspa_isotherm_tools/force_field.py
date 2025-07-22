@@ -5,7 +5,7 @@ This module handles the generation of force field parameters using chmpy's
 UFF parameters and EEQ charges.
 """
 
-from typing import Any, Dict, Tuple
+from typing import Any
 
 from chmpy.core.element import Element
 from chmpy.crystal import Crystal
@@ -15,7 +15,7 @@ from chmpy.ff.params import assign_uff_type_from_coordination, load_lj_params
 from .constants import BOLTZMANN_K_KCAL_MOL, CO2_FORCE_FIELD_PARAMS
 
 
-def get_asymmetric_unit_uff_parameters(crystal: Crystal, force_field: str = "uff") -> Tuple[Dict[int, str], Dict[int, Dict[str, float]]]:
+def get_asymmetric_unit_uff_parameters(crystal: Crystal, force_field: str = "uff") -> tuple[dict[int, str], dict[int, dict[str, float]]]:
     """
     Get UFF parameters for asymmetric unit atoms only.
 
@@ -39,7 +39,7 @@ def get_asymmetric_unit_uff_parameters(crystal: Crystal, force_field: str = "uff
     atom_types = {}
     parameters = {}
 
-    for i, (atomic_num, coord_num) in enumerate(zip(atomic_nums, coord_nums)):
+    for i, (atomic_num, coord_num) in enumerate(zip(atomic_nums, coord_nums, strict=False)):
         # Assign UFF type based on coordination
         uff_type = assign_uff_type_from_coordination(atomic_num, coord_num)
         atom_types[i] = uff_type
@@ -56,7 +56,7 @@ def get_asymmetric_unit_uff_parameters(crystal: Crystal, force_field: str = "uff
     return atom_types, parameters
 
 
-def generate_default_labels(crystal: Crystal) -> Dict[int, str]:
+def generate_default_labels(crystal: Crystal) -> dict[int, str]:
     """
     Generate default labels for asymmetric unit atoms (H1, H2, C1, etc.).
 
@@ -88,7 +88,7 @@ def generate_default_labels(crystal: Crystal) -> Dict[int, str]:
     return labels
 
 
-def update_crystal_labels(crystal: Crystal, new_labels: Dict[int, str]) -> None:
+def update_crystal_labels(crystal: Crystal, new_labels: dict[int, str]) -> None:
     """
     Update crystal asymmetric unit labels and clear cached data.
 
@@ -96,9 +96,18 @@ def update_crystal_labels(crystal: Crystal, new_labels: Dict[int, str]) -> None:
         crystal: chmpy Crystal object
         new_labels: Dict mapping atom indices to new labels
     """
-    # Update asymmetric unit labels
+    import numpy as np
+
+    # Convert current labels to a list for easier manipulation
+    current_labels = list(crystal.asymmetric_unit.labels)
+
+    # Update with new labels
     for i, label in new_labels.items():
-        crystal.asymmetric_unit.labels[i] = label
+        current_labels[i] = label
+
+    # Replace the entire labels array with a new one that can accommodate longer strings
+    # Using dtype=object to handle variable-length strings without truncation
+    crystal.asymmetric_unit.labels = np.array(current_labels, dtype=object)
 
     # Clear cached CIF data so it gets regenerated with new labels
     if hasattr(crystal, 'properties') and 'cif_data' in crystal.properties:
@@ -106,7 +115,7 @@ def update_crystal_labels(crystal: Crystal, new_labels: Dict[int, str]) -> None:
 
 
 def create_force_field_json(crystal: Crystal, force_field: str = "uff",
-                           asym_labels: Dict[int, str] = None) -> Dict[str, Any]:
+                           asym_labels: dict[int, str] = None) -> dict[str, Any]:
     """
     Create force_field.json using chmpy UFF parameters and EEQ charges.
 
@@ -133,7 +142,7 @@ def create_force_field_json(crystal: Crystal, force_field: str = "uff",
     pseudo_atoms = []
 
     # Framework atoms - one entry per asymmetric unit atom (each can have different charge)
-    for i, (atomic_num, _uff_type) in enumerate(zip(atomic_nums, atom_types.values())):
+    for i, (atomic_num, _uff_type) in enumerate(zip(atomic_nums, atom_types.values(), strict=False)):
         element = Element.from_atomic_number(atomic_num)
 
         # Use asymmetric unit label
@@ -176,7 +185,7 @@ def create_force_field_json(crystal: Crystal, force_field: str = "uff",
     self_interactions = []
 
     # Framework interactions - one per asymmetric unit atom
-    for i, (_atomic_num, _uff_type) in enumerate(zip(atomic_nums, atom_types.values())):
+    for i, (_atomic_num, _uff_type) in enumerate(zip(atomic_nums, atom_types.values(), strict=False)):
         # Use asymmetric unit label to match pseudo atom name
         atom_label = asym_labels[i] if asym_labels else f"atom{i+1}"
 

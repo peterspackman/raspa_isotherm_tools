@@ -6,12 +6,11 @@ ensuring they have the necessary international tables number and hall symbol
 required by RASPA3.
 """
 
-from typing import Optional, Tuple
 
 from chmpy.crystal import Crystal
 
 
-def get_space_group_info(crystal: Crystal) -> Tuple[Optional[int], Optional[str]]:
+def get_space_group_info(crystal: Crystal) -> tuple[int | None, str | None]:
     """
     Get space group information from a chmpy Crystal object.
 
@@ -153,6 +152,12 @@ def save_crystal_with_space_group(crystal: Crystal, output_path) -> None:
         int_tables_number, hm_symbol = get_space_group_info(crystal)
 
         if int_tables_number is not None:
+            # Clear any cached CIF data to ensure updated labels are used
+            if hasattr(crystal, 'properties') and 'cif_data' in crystal.properties:
+                del crystal.properties['cif_data']
+            if hasattr(crystal, '_cif_data'):
+                delattr(crystal, '_cif_data')
+
             # Get CIF data
             cif_data = crystal.to_cif_data()
 

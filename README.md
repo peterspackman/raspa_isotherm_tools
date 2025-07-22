@@ -14,7 +14,8 @@ This package provides tools for:
 2. **Force Field Generation**: Create UFF force fields with EEQ charges using chmpy
 3. **Space Group Handling**: Ensure RASPA3 compatibility with proper space group information
 4. **Parallel Execution**: Run multiple RASPA3 simulations in parallel with progress tracking
-5. **Unified CLI**: Single command-line interface for the entire workflow
+5. **Results Analysis**: Parse output files, create plots, and export data to CSV/Excel
+6. **Unified CLI**: Single command-line interface for the entire workflow
 
 ## Features
 
@@ -96,7 +97,20 @@ raspa-run jobs --max-workers 4
 raspa-run isotherms --max-workers 8 --timeout 3600 --use-chmpy
 ```
 
-#### 3. Unified Interface
+#### 3. Analyze Results
+
+```bash
+# Parse RASPA3 outputs and create database
+raspa-analyze jobs --database results.db
+
+# Plot isotherms with error bars  
+raspa-analyze jobs --database results.db --plot Cu-BTC CO2
+
+# Export data to CSV/Excel
+raspa-analyze jobs --database results.db --export csv Cu-BTC CO2
+```
+
+#### 4. Unified Interface
 
 ```bash
 # Combined generate and run workflow
@@ -109,6 +123,7 @@ raspa-isotherm run jobs --max-workers 4
 ```python
 from raspa_isotherm_tools.generator import RASPAInputGenerator
 from raspa_isotherm_tools.parallel_runner import RASPAParallelRunner
+from raspa_isotherm_tools.database import RASPADatabase
 
 # Generate simulation inputs
 generator = RASPAInputGenerator("framework.cif")
@@ -124,10 +139,17 @@ generator.generate_jobs(
 runner = RASPAParallelRunner("jobs", max_workers=4)
 results = runner.run_all_jobs()
 
-# Get summary
-summary = runner.get_results_summary(results)
-print(f"Completed {len(summary['job_directories'])} jobs")
-print(f"Success rate: {sum(summary['success_flags'])/len(summary['success_flags'])*100:.1f}%")
+# Parse results into database
+from raspa_isotherm_tools.output_parser import RASPAOutputParser
+from raspa_isotherm_tools.plotting import plot_isotherm_from_database
+
+parser = RASPAOutputParser("jobs")
+db = RASPADatabase("results.db")
+parser.parse_all_outputs(db)
+
+# Create plots and export data
+plot_isotherm_from_database("results.db", "Cu-BTC", "CO2")
+db.export_isotherm_to_csv("isotherm.csv", "Cu-BTC", "CO2")
 ```
 
 ### Force Field Generation

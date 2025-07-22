@@ -6,14 +6,14 @@ simulation configuration.
 """
 
 from copy import deepcopy
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .constants import DEFAULT_SIMULATION_SETTINGS
 
 
 def create_simulation_json(pressure: float, framework_name: str = "framework",
                           temperature: float = 323.0,
-                          simulation_settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                          simulation_settings: dict[str, Any] | None = None) -> dict[str, Any]:
     """
     Create simulation.json with specified pressure and settings.
 

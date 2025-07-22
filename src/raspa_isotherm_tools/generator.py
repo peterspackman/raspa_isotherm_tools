@@ -8,7 +8,7 @@ from CIF structures using chmpy for force field parameters and charges.
 import argparse
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from chmpy.crystal import Crystal
 
@@ -60,7 +60,7 @@ class RASPAInputGenerator:
     def generate_jobs(self, output_dir: str = "jobs",
                      min_pressure: float = 0.0, max_pressure: float = 1000000.0,
                      pressure_count: int = 100, temperature: float = 323.0,
-                     simulation_settings: Optional[Dict[str, Any]] = None,
+                     simulation_settings: dict[str, Any] | None = None,
                      job_name: str = "CO2_iso", memory: str = "1G",
                      time: str = "00:10:00") -> None:
         """

@@ -10,7 +10,7 @@ import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 try:
     from tqdm import tqdm
@@ -68,8 +68,8 @@ class JobResult:
     """Container for job execution results."""
 
     def __init__(self, job_dir: Path, success: bool,
-                 output: Optional[str] = None, error: Optional[str] = None,
-                 execution_time: Optional[float] = None):
+                 output: str | None = None, error: str | None = None,
+                 execution_time: float | None = None):
         self.job_dir = job_dir
         self.success = success
         self.output = output
@@ -80,7 +80,7 @@ class JobResult:
 class RASPAParallelRunner:
     """Parallel runner for RASPA3 simulations."""
 
-    def __init__(self, base_directory: str, max_workers: Optional[int] = None,
+    def __init__(self, base_directory: str, max_workers: int | None = None,
                  timeout: float = 3600.0, use_chmpy: bool = True):
         """
         Initialize the parallel runner.
@@ -104,7 +104,7 @@ class RASPAParallelRunner:
 
         LOG.info(f"Found {len(self.job_directories)} job directories to process")
 
-    def _find_job_directories(self) -> List[Path]:
+    def _find_job_directories(self) -> list[Path]:
         """Find all numbered job directories in the base directory."""
         job_dirs = []
 
@@ -268,7 +268,7 @@ class RASPAParallelRunner:
         else:
             return self._run_job_subprocess(job_dir)
 
-    def run_all_jobs(self) -> Dict[str, JobResult]:
+    def run_all_jobs(self) -> dict[str, JobResult]:
         """
         Run all jobs in parallel.
 
@@ -338,7 +338,7 @@ class RASPAParallelRunner:
 
         return results
 
-    def get_results_summary(self, results: Dict[str, JobResult]) -> Dict[str, Any]:
+    def get_results_summary(self, results: dict[str, JobResult]) -> dict[str, Any]:
         """
         Extract a summary of results for analysis.
 
