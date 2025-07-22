@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "raspa_isotherm_tools"
-version = "1.0.0"
+version = "1.0.1"
 description = "A collection of Python scripts for setting up, running, and analyzing adsorption isotherm simulations with RASPA3"
 readme = "README.md"
 requires-python = ">=3.10"
