@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "raspa_isotherm_tools"
-version = "1.0.1"
+version = "1.0.2"
 description = "A collection of Python scripts for setting up, running, and analyzing adsorption isotherm simulations with RASPA3"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -30,7 +30,8 @@ dependencies = [
     "duckdb>=0.9.0",
     "pandas>=2.0.0",
     "matplotlib>=3.5.0",
-    "openpyxl>=3.0.0"
+    "openpyxl>=3.0.0",
+    "core-mof>=2019.1",
 ]
 
 [project.optional-dependencies]

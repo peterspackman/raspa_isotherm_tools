@@ -27,16 +27,18 @@ class RASPAInputGenerator:
     Main class for generating RASPA input files from CIF structures.
     """
 
-    def __init__(self, cif_path: str, force_field: str = "uff"):
+    def __init__(self, cif_path: str, force_field: str = "uff4mof", charge_scale_factor: float = 1.0):
         """
         Initialize the generator with a CIF file.
 
         Args:
             cif_path: Path to the CIF file
             force_field: Force field to use ("uff" or "uff4mof")
+            charge_scale_factor: Factor to scale all framework charges (default: 1.0)
         """
         self.cif_path = Path(cif_path)
         self.force_field = force_field
+        self.charge_scale_factor = charge_scale_factor
 
         # Load crystal structure
         try:
@@ -85,7 +87,7 @@ class RASPAInputGenerator:
         print("Generating force field parameters using chmpy UFF and EEQ...")
         try:
             force_field_data = create_force_field_json(
-                self.crystal, self.force_field, self.default_labels
+                self.crystal, self.force_field, self.default_labels, self.charge_scale_factor
             )
             print(f"Generated force field with {len(force_field_data['PseudoAtoms'])} pseudo atoms")
         except Exception as e:
@@ -211,6 +213,8 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument("--force-field", type=str, default="uff",
                        choices=["uff", "uff4mof"],
                        help="Force field to use")
+    parser.add_argument("--charge-scale-factor", type=float, default=1.0,
+                       help="Factor to scale all framework charges (default: 1.0)")
     parser.add_argument("-o", "--output-dir", type=str, default="jobs",
                        help="Output directory name")
 
@@ -266,7 +270,7 @@ def main() -> int:
 
     try:
         # Create generator
-        generator = RASPAInputGenerator(args.cif, args.force_field)
+        generator = RASPAInputGenerator(args.cif, args.force_field, args.charge_scale_factor)
 
         # Load template settings if provided
         simulation_settings = None

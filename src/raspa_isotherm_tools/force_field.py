@@ -115,7 +115,8 @@ def update_crystal_labels(crystal: Crystal, new_labels: dict[int, str]) -> None:
 
 
 def create_force_field_json(crystal: Crystal, force_field: str = "uff",
-                           asym_labels: dict[int, str] = None) -> dict[str, Any]:
+                           asym_labels: dict[int, str] = None, 
+                           charge_scale_factor: float = 1.0) -> dict[str, Any]:
     """
     Create force_field.json using chmpy UFF parameters and EEQ charges.
 
@@ -123,6 +124,7 @@ def create_force_field_json(crystal: Crystal, force_field: str = "uff",
         crystal: chmpy Crystal object
         force_field: "uff" or "uff4mof"
         asym_labels: Dict mapping atom indices to asymmetric unit labels
+        charge_scale_factor: Factor to scale all framework charges (default: 1.0)
 
     Returns:
         Dict containing force field JSON structure
@@ -136,7 +138,11 @@ def create_force_field_json(crystal: Crystal, force_field: str = "uff",
 
     # Get EEQ charges for unit cell, then extract asymmetric unit portion
     all_charges = calculate_eeq_charges_crystal(crystal)
-    charges = all_charges[:len(atomic_nums)]
+    
+    # The issue is that some CIFs have more atoms than the asymmetric unit
+    # We need to use only the asymmetric unit charges
+    num_asym_atoms = len(atomic_nums)
+    charges = all_charges[:num_asym_atoms]
 
     # Create pseudo atoms list - one per asymmetric unit atom
     pseudo_atoms = []
@@ -155,7 +161,7 @@ def create_force_field_json(crystal: Crystal, force_field: str = "uff",
             "element": element.symbol,
             "print_as": element.symbol,
             "mass": element.mass,
-            "charge": float(charges[i])  # Each atom has its own EEQ charge
+            "charge": float(charges[i] * charge_scale_factor)  # Each atom has its own EEQ charge, scaled
         }
         pseudo_atoms.append(pseudo_atom)
 

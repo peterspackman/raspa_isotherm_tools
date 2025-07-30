@@ -44,6 +44,8 @@ def create_parser() -> argparse.ArgumentParser:
     generate_parser.add_argument("--force-field", type=str, default="uff",
                                choices=["uff", "uff4mof"],
                                help="Force field to use")
+    generate_parser.add_argument("--charge-scale-factor", type=float, default=1.0,
+                               help="Factor to scale all framework charges (default: 1.0)")
     generate_parser.add_argument("-o", "--output-dir", type=str, default="jobs",
                                help="Output directory name")
 
@@ -140,6 +142,7 @@ def main(args=None) -> int:
                 '-t', parsed_args.time,
                 '-T', str(parsed_args.temperature),
                 '--force-field', parsed_args.force_field,
+                '--charge-scale-factor', str(parsed_args.charge_scale_factor),
                 '-o', parsed_args.output_dir,
                 '--cycles', str(parsed_args.cycles),
                 '--init-cycles', str(parsed_args.init_cycles),
