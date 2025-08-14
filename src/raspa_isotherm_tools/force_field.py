@@ -10,9 +10,12 @@ from typing import Any
 from chmpy.core.element import Element
 from chmpy.crystal import Crystal
 from chmpy.crystal.eeq_pbc import calculate_eeq_charges_crystal
-from chmpy.ff.params import assign_uff_type_from_coordination, load_lj_params
+from chmpy.ff.params import assign_uff_type_from_coordination, load_lj_params, get_lj_parameters
 
 from .constants import BOLTZMANN_K_KCAL_MOL, CO2_FORCE_FIELD_PARAMS
+
+import json
+from pathlib import Path
 
 
 def get_asymmetric_unit_uff_parameters(crystal: Crystal, force_field: str = "uff") -> tuple[dict[int, str], dict[int, dict[str, float]]]:
@@ -116,15 +119,17 @@ def update_crystal_labels(crystal: Crystal, new_labels: dict[int, str]) -> None:
 
 def create_force_field_json(crystal: Crystal, force_field: str = "uff",
                            asym_labels: dict[int, str] = None, 
-                           charge_scale_factor: float = 1.0) -> dict[str, Any]:
+                           charge_scale_factor: float = 1.0,
+                           charge_file: Path = None) -> dict[str, Any]:
     """
-    Create force_field.json using chmpy UFF parameters and EEQ charges.
+    Create force_field.json using chmpy UFF parameters and EEQ or file-based charges.
 
     Args:
         crystal: chmpy Crystal object
-        force_field: "uff" or "uff4mof"
+        force_field: "uff", "uff4mof", or "fit_lj"
         asym_labels: Dict mapping atom indices to asymmetric unit labels
         charge_scale_factor: Factor to scale all framework charges (default: 1.0)
+        charge_file: Path to JSON file containing atom charges (optional)
 
     Returns:
         Dict containing force field JSON structure
@@ -133,22 +138,52 @@ def create_force_field_json(crystal: Crystal, force_field: str = "uff",
     asym_unit = crystal.asymmetric_unit
     atomic_nums = asym_unit.atomic_numbers
 
-    # Get UFF parameters for asymmetric unit only
-    atom_types, uff_params = get_asymmetric_unit_uff_parameters(crystal, force_field)
+    # Get force field parameters
+    if force_field == "fit_lj":
+        # Use get_lj_parameters directly for fitted parameters
+        atom_types, uff_params = get_lj_parameters(crystal, force_field="fit_lj")
+    else:
+        # Get UFF parameters for asymmetric unit only
+        atom_types, uff_params = get_asymmetric_unit_uff_parameters(crystal, force_field)
 
-    # Get EEQ charges for unit cell, then extract asymmetric unit portion
-    all_charges = calculate_eeq_charges_crystal(crystal)
-    
-    # The issue is that some CIFs have more atoms than the asymmetric unit
-    # We need to use only the asymmetric unit charges
-    num_asym_atoms = len(atomic_nums)
-    charges = all_charges[:num_asym_atoms]
+    # Get charges either from file or calculate with EEQ
+    if charge_file and charge_file.exists():
+        # Load charges from JSON file
+        with open(charge_file, 'r') as f:
+            charge_data = json.load(f)
+        
+        # Extract charges for asymmetric unit atoms
+        # Assume the file contains a mapping of atom labels to charges
+        charges = []
+        for i in range(len(atomic_nums)):
+            label = asym_labels[i] if asym_labels else f"atom{i+1}"
+            if label in charge_data:
+                charges.append(charge_data[label])
+            elif str(i) in charge_data:
+                charges.append(charge_data[str(i)])
+            else:
+                # Try to find by element and number
+                element = Element.from_atomic_number(atomic_nums[i])
+                default_label = f"{element.symbol}{i+1}"
+                if default_label in charge_data:
+                    charges.append(charge_data[default_label])
+                else:
+                    print(f"Warning: No charge found for atom {label}, using 0.0")
+                    charges.append(0.0)
+    else:
+        # Get EEQ charges for unit cell, then extract asymmetric unit portion
+        all_charges = calculate_eeq_charges_crystal(crystal)
+        
+        # The issue is that some CIFs have more atoms than the asymmetric unit
+        # We need to use only the asymmetric unit charges
+        num_asym_atoms = len(atomic_nums)
+        charges = all_charges[:num_asym_atoms]
 
     # Create pseudo atoms list - one per asymmetric unit atom
     pseudo_atoms = []
 
     # Framework atoms - one entry per asymmetric unit atom (each can have different charge)
-    for i, (atomic_num, _uff_type) in enumerate(zip(atomic_nums, atom_types.values(), strict=False)):
+    for i, atomic_num in enumerate(atomic_nums):
         element = Element.from_atomic_number(atomic_num)
 
         # Use asymmetric unit label
@@ -191,21 +226,29 @@ def create_force_field_json(crystal: Crystal, force_field: str = "uff",
     self_interactions = []
 
     # Framework interactions - one per asymmetric unit atom
-    for i, (_atomic_num, _uff_type) in enumerate(zip(atomic_nums, atom_types.values(), strict=False)):
+    for i in range(len(atomic_nums)):
         # Use asymmetric unit label to match pseudo atom name
         atom_label = asym_labels[i] if asym_labels else f"atom{i+1}"
 
-        # Get UFF parameters for this atom
+        # Get parameters for this atom
         params = uff_params[i]
 
         # Convert epsilon from kcal/mol to K for RASPA
         epsilon_K = params["epsilon"] / BOLTZMANN_K_KCAL_MOL
 
+        # Set source based on force field type
+        if force_field == "fit_lj":
+            source = "Fitted LJ via chmpy"
+        elif force_field == "uff4mof":
+            source = "UFF4MOF via chmpy"
+        else:
+            source = "UFF via chmpy"
+        
         interaction = {
             "name": atom_label,  # Must match pseudo atom name
             "type": "lennard-jones",
             "parameters": [epsilon_K, params["sigma"]],
-            "source": "UFF via chmpy"
+            "source": source
         }
         self_interactions.append(interaction)
 
