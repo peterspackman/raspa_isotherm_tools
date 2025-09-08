@@ -89,6 +89,71 @@ def create_parser() -> argparse.ArgumentParser:
     generate_parser.add_argument("--template", type=str,
                                help="JSON template file for simulation settings")
 
+    # Single-point command
+    single_point_parser = subparsers.add_parser(
+        'single-point',
+        help='Generate single-point calculations for multiple crystals at fixed pressure/temperature',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    single_point_parser.add_argument("cifs", nargs="+", help="Crystal structure files (CIF format)")
+    single_point_parser.add_argument("-p", "--pressure", type=float, required=True,
+                                   help="Pressure (Pa)")
+    single_point_parser.add_argument("-T", "--temperature", type=float, default=323.0,
+                                   help="Temperature (K)")
+    single_point_parser.add_argument("-j", "--job-name", type=str, default="CO2_single",
+                                   help="Job name for SLURM script")
+    single_point_parser.add_argument("-m", "--memory", type=str, default="1G",
+                                   help="Memory for SLURM job script")
+    single_point_parser.add_argument("-t", "--time", type=str, default="00:10:00",
+                                   help="Time for SLURM job script")
+    single_point_parser.add_argument("--force-field", type=str, default="uff",
+                                   choices=["uff", "uff4mof"],
+                                   help="Force field to use")
+    single_point_parser.add_argument("--charge-scale-factor", type=float, default=1.0,
+                                   help="Factor to scale all framework charges (default: 1.0)")
+    single_point_parser.add_argument("-o", "--output-dir", type=str, default="single_point_jobs",
+                                   help="Output directory name")
+
+    # Simulation settings for single-point
+    single_point_parser.add_argument("--cycles", type=int, default=10000,
+                                   help="Number of Monte Carlo cycles")
+    single_point_parser.add_argument("--init-cycles", type=int, default=200,
+                                   help="Number of initialization cycles")
+    single_point_parser.add_argument("--print-every", type=int, default=500,
+                                   help="Print frequency")
+    single_point_parser.add_argument("--simulation-type", type=str, default="MonteCarlo",
+                                   choices=["MonteCarlo", "MolecularDynamics"],
+                                   help="Type of simulation")
+    single_point_parser.add_argument("--unit-cells", type=int, nargs=3, default=[1, 1, 1],
+                                   help="Number of unit cells in each direction")
+    single_point_parser.add_argument("--charge-method", type=str, default="Ewald",
+                                   choices=["Ewald", "Wolf", "None"],
+                                   help="Charge calculation method")
+    single_point_parser.add_argument("--density-grid", action="store_true",
+                                   help="Enable density grid computation")
+    single_point_parser.add_argument("--pdb-movie", action="store_true",
+                                   help="Enable PDB movie output")
+
+    # Component settings for single-point
+    single_point_parser.add_argument("--fugacity-coeff", type=float, default=1.0,
+                                   help="Fugacity coefficient for CO2")
+    single_point_parser.add_argument("--translation-prob", type=float, default=0.5,
+                                   help="Translation move probability")
+    single_point_parser.add_argument("--rotation-prob", type=float, default=0.5,
+                                   help="Rotation move probability")
+    single_point_parser.add_argument("--reinsertion-prob", type=float, default=0.5,
+                                   help="Reinsertion move probability")
+    single_point_parser.add_argument("--swap-prob", type=float, default=1.0,
+                                   help="Swap move probability")
+    single_point_parser.add_argument("--widom-prob", type=float, default=1.0,
+                                   help="Widom insertion probability")
+    single_point_parser.add_argument("--initial-molecules", type=int, default=0,
+                                   help="Initial number of CO2 molecules")
+
+    # Template file option for single-point
+    single_point_parser.add_argument("--template", type=str,
+                                   help="JSON template file for simulation settings")
+
     # Run command
     run_parser = subparsers.add_parser(
         'run',
@@ -171,6 +236,51 @@ def main(args=None) -> int:
             sys.argv = ['raspa-isotherm'] + generator_args
             try:
                 return generator_main()
+            finally:
+                sys.argv = original_argv
+
+        elif parsed_args.command == 'single-point':
+            # Import here to avoid circular imports
+            from .generator import single_point_main
+            
+            # Convert parsed args to sys.argv format for single_point_main
+            single_point_args = parsed_args.cifs.copy()
+            single_point_args.extend([
+                '-p', str(parsed_args.pressure),
+                '-T', str(parsed_args.temperature),
+                '-j', parsed_args.job_name,
+                '-m', parsed_args.memory,
+                '-t', parsed_args.time,
+                '--force-field', parsed_args.force_field,
+                '--charge-scale-factor', str(parsed_args.charge_scale_factor),
+                '-o', parsed_args.output_dir,
+                '--cycles', str(parsed_args.cycles),
+                '--init-cycles', str(parsed_args.init_cycles),
+                '--print-every', str(parsed_args.print_every),
+                '--simulation-type', parsed_args.simulation_type,
+                '--unit-cells', *map(str, parsed_args.unit_cells),
+                '--charge-method', parsed_args.charge_method,
+                '--fugacity-coeff', str(parsed_args.fugacity_coeff),
+                '--translation-prob', str(parsed_args.translation_prob),
+                '--rotation-prob', str(parsed_args.rotation_prob),
+                '--reinsertion-prob', str(parsed_args.reinsertion_prob),
+                '--swap-prob', str(parsed_args.swap_prob),
+                '--widom-prob', str(parsed_args.widom_prob),
+                '--initial-molecules', str(parsed_args.initial_molecules),
+            ])
+
+            if parsed_args.density_grid:
+                single_point_args.append('--density-grid')
+            if parsed_args.pdb_movie:
+                single_point_args.append('--pdb-movie')
+            if parsed_args.template:
+                single_point_args.extend(['--template', parsed_args.template])
+
+            # Temporarily replace sys.argv for the single_point function
+            original_argv = sys.argv
+            sys.argv = ['raspa-single-point'] + single_point_args
+            try:
+                return single_point_main()
             finally:
                 sys.argv = original_argv
 

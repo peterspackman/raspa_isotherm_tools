@@ -53,6 +53,7 @@ parallel = [
 [project.scripts]
 raspa-isotherm = "raspa_isotherm_tools.cli:main"
 raspa-generate = "raspa_isotherm_tools.generator:main"
+raspa-generate-single = "raspa_isotherm_tools.generator:single_point_main"
 raspa-run = "raspa_isotherm_tools.parallel_runner:main"
 raspa-analyze = "raspa_isotherm_tools.analyzer:main"
 
