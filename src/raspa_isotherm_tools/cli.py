@@ -242,7 +242,7 @@ def main(args=None) -> int:
         elif parsed_args.command == 'single-point':
             # Import here to avoid circular imports
             from .generator import single_point_main
-            
+
             # Convert parsed args to sys.argv format for single_point_main
             single_point_args = parsed_args.cifs.copy()
             single_point_args.extend([

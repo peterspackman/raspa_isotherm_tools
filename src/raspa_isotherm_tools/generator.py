@@ -213,11 +213,11 @@ class RASPAInputGenerator:
             crystal_index: Index for this crystal in the batch
         """
         base_dir = Path(output_dir)
-        
+
         # Create numbered directory for SLURM array compatibility
         sim_dir = base_dir / f"{crystal_index:03d}_{self.cif_path.stem}"
         sim_dir.mkdir(parents=True, exist_ok=True)
-        
+
         print(f"Creating simulation directory: {sim_dir}")
 
         # Generate force field using chmpy
@@ -417,10 +417,10 @@ def single_point_main() -> int:
         # Process each CIF file
         for i, cif_path in enumerate(args.cifs):
             print(f"\nProcessing {cif_path} ({i+1}/{len(args.cifs)})")
-            
+
             try:
                 # Create generator for this crystal
-                generator = RASPAInputGenerator(cif_path, args.force_field, 
+                generator = RASPAInputGenerator(cif_path, args.force_field,
                                                args.charge_scale_factor, args.charge_file)
 
                 # Load template settings if provided
@@ -468,7 +468,7 @@ def single_point_main() -> int:
                     time=args.time,
                     crystal_index=i
                 )
-                
+
                 successful_crystals.append(cif_path)
 
             except Exception as e:
@@ -477,15 +477,15 @@ def single_point_main() -> int:
                 continue
 
         # Create summary files
-        create_single_point_summary(base_dir, successful_crystals, failed_crystals, 
+        create_single_point_summary(base_dir, successful_crystals, failed_crystals,
                                   args.pressure, args.temperature, args.force_field)
 
         # Create SLURM submission script for all crystals
         if successful_crystals:
-            create_single_point_slurm_script(base_dir, len(successful_crystals), 
+            create_single_point_slurm_script(base_dir, len(successful_crystals),
                                            args.job_name, args.memory, args.time)
 
-        print(f"\nSummary:")
+        print("\nSummary:")
         print(f"Successfully processed: {len(successful_crystals)} crystals")
         print(f"Failed: {len(failed_crystals)} crystals")
         if failed_crystals:
@@ -507,20 +507,20 @@ def create_single_point_summary(base_dir: Path, successful_crystals: list, faile
         for i, crystal in enumerate(successful_crystals):
             crystal_name = Path(crystal).stem
             f.write(f"{i:03d}_{crystal_name}: {crystal}\n")
-    
+
     print(f"Created crystal index: {index_file}")
-    
+
     # Create separate info file with metadata
     info_file = base_dir / "calculation_info.txt"
     with info_file.open("w") as f:
-        f.write(f"Single-point calculation summary\n")
+        f.write("Single-point calculation summary\n")
         f.write(f"Pressure: {pressure:.2e} Pa ({pressure/1000:.1f} kPa)\n")
         f.write(f"Temperature: {temperature} K\n")
         f.write(f"Force field: {force_field.upper()}\n")
         f.write(f"Total crystals processed: {len(successful_crystals)}\n")
         if failed_crystals:
             f.write(f"Failed crystals: {len(failed_crystals)}\n")
-    
+
     print(f"Created calculation info: {info_file}")
 
     # Create failed crystals list if any failed (no comments)

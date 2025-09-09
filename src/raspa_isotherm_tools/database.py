@@ -15,7 +15,7 @@ class RASPADatabase:
     """
     DuckDB database manager for RASPA simulation results.
     """
-    
+
     def __init__(self, db_path: str = "raspa_results.db"):
         """
         Initialize database connection.
@@ -26,7 +26,7 @@ class RASPADatabase:
         self.db_path = db_path
         self.conn = duckdb.connect(db_path)
         self._create_tables()
-    
+
     def _create_tables(self):
         """Create database tables for storing RASPA results."""
         self.conn.execute("""
@@ -54,7 +54,7 @@ class RASPADatabase:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-    
+
     def insert_result(self, result: dict[str, Any]) -> None:
         """
         Insert a simulation result into the database.
@@ -70,16 +70,16 @@ class RASPADatabase:
             "energy_framework_molecule_k", "energy_total_k",
             "enthalpy_adsorption_k", "enthalpy_adsorption_kj_mol"
         ]
-        
+
         values = [result.get(col, 0.0) for col in columns]
         placeholders = ", ".join(["?" for _ in columns])
-        
+
         self.conn.execute(
             f"INSERT OR REPLACE INTO simulation_results ({', '.join(columns)}) VALUES ({placeholders})",
             values
         )
-    
-    def get_results_dataframe(self, framework_name: str = None, 
+
+    def get_results_dataframe(self, framework_name: str = None,
                             component_name: str = None) -> pd.DataFrame:
         """
         Get simulation results as a pandas DataFrame.
@@ -93,20 +93,20 @@ class RASPADatabase:
         """
         query = "SELECT * FROM simulation_results WHERE 1=1"
         params = []
-        
+
         if framework_name:
             query += " AND framework_name = ?"
             params.append(framework_name)
-        
+
         if component_name:
             query += " AND component_name = ?"
             params.append(component_name)
-        
+
         query += " ORDER BY pressure_pa"
-        
+
         return self.conn.execute(query, params).df()
-    
-    def get_isotherm_data(self, framework_name: str, component_name: str, 
+
+    def get_isotherm_data(self, framework_name: str, component_name: str,
                          temperature_k: float = None) -> pd.DataFrame:
         """
         Get isotherm data (pressure vs loading) for a specific framework-component pair.
@@ -138,26 +138,26 @@ class RASPADatabase:
             WHERE framework_name = ? AND component_name = ?
         """
         params = [framework_name, component_name]
-        
+
         if temperature_k:
             query += " AND ABS(temperature_k - ?) < 0.1"
             params.append(temperature_k)
-        
+
         query += " ORDER BY pressure_pa"
-        
+
         return self.conn.execute(query, params).df()
-    
+
     def get_framework_names(self) -> list[str]:
         """Get list of all framework names in the database."""
         result = self.conn.execute("SELECT DISTINCT framework_name FROM simulation_results ORDER BY framework_name").fetchall()
         return [row[0] for row in result]
-    
+
     def get_component_names(self) -> list[str]:
         """Get list of all component names in the database."""
         result = self.conn.execute("SELECT DISTINCT component_name FROM simulation_results ORDER BY component_name").fetchall()
         return [row[0] for row in result]
-    
-    def export_to_csv(self, output_path: str, framework_name: str = None, 
+
+    def export_to_csv(self, output_path: str, framework_name: str = None,
                      component_name: str = None) -> None:
         """
         Export simulation results to CSV file.
@@ -169,7 +169,7 @@ class RASPADatabase:
         """
         df = self.get_results_dataframe(framework_name, component_name)
         df.to_csv(output_path, index=False)
-    
+
     def export_to_excel(self, output_path: str, framework_name: str = None,
                        component_name: str = None) -> None:
         """
@@ -182,8 +182,8 @@ class RASPADatabase:
         """
         df = self.get_results_dataframe(framework_name, component_name)
         df.to_excel(output_path, index=False)
-    
-    def export_isotherm_to_csv(self, output_path: str, framework_name: str, 
+
+    def export_isotherm_to_csv(self, output_path: str, framework_name: str,
                               component_name: str, temperature_k: float = None) -> None:
         """
         Export isotherm data to CSV file.
@@ -196,7 +196,7 @@ class RASPADatabase:
         """
         df = self.get_isotherm_data(framework_name, component_name, temperature_k)
         df.to_csv(output_path, index=False)
-    
+
     def export_isotherm_to_excel(self, output_path: str, framework_name: str,
                                 component_name: str, temperature_k: float = None) -> None:
         """

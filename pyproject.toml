@@ -26,7 +26,7 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.19.0",
-    "chmpy>=1.1.7",
+    "chmpy>=1.1.9",
     "duckdb>=0.9.0",
     "pandas>=2.0.0",
     "matplotlib>=3.5.0",
