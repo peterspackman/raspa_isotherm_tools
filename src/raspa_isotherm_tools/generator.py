@@ -215,7 +215,7 @@ class RASPAInputGenerator:
         base_dir = Path(output_dir)
 
         # Create numbered directory for SLURM array compatibility
-        sim_dir = base_dir / f"{crystal_index:03d}_{self.cif_path.stem}"
+        sim_dir = base_dir / f"{crystal_index:03d}"
         sim_dir.mkdir(parents=True, exist_ok=True)
 
         print(f"Creating simulation directory: {sim_dir}")
@@ -506,7 +506,7 @@ def create_single_point_summary(base_dir: Path, successful_crystals: list, faile
     with index_file.open("w") as f:
         for i, crystal in enumerate(successful_crystals):
             crystal_name = Path(crystal).stem
-            f.write(f"{i:03d}_{crystal_name}: {crystal}\n")
+            f.write(f"{i:03d}: {crystal}\n")
 
     print(f"Created crystal index: {index_file}")
 
